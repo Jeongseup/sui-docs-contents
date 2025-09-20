@@ -49,6 +49,7 @@ npm install -D typescript ts-node @types/node
 프로젝트 루트 디렉토리에 `.env` 파일을 생성하고, 봇을 실행할 지갑의 비공개 키를 추가합니다.
 
 **`.env`**
+
 ```
 # 주의: 이 파일은 git에 커밋하지 마세요!
 # Sui 지갑의 Base64 인코딩된 32바이트 비공개 키 앞에 0x를 붙여서 입력합니다.
@@ -63,6 +64,7 @@ PRIVATE_KEY="YOUR_SUI_PRIVATE_KEY"
 TypeScript 컴파일러 설정을 위해 `tsconfig.json` 파일을 프로젝트 루트에 생성합니다.
 
 **`tsconfig.json`**
+
 ```json
 {
   "compilerOptions": {
@@ -84,6 +86,7 @@ TypeScript 컴파일러 설정을 위해 `tsconfig.json` 파일을 프로젝트 
 프로젝트 루트에 `dca-bot.ts` 파일을 생성하고 아래의 전체 코드를 붙여넣습니다. 이 코드는 샘플 코드의 의도를 바탕으로 DeepBookV3 SDK의 실제 사용법에 맞게 수정 및 보완되었습니다.
 
 **`dca-bot.ts`**
+
 ```typescript
 import { DeepBookClient } from '@mysten/deepbook-v3';
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
@@ -237,30 +240,30 @@ dcaBuyBtc().catch((error) => {
 
 ### 5.1. Balance Manager 생성 및 관리
 
--   **샘플 코드:** `BALANCE_MANAGER_ID`를 하드코딩된 상수로 가정했습니다.
--   **수정된 코드:** `getOrCreateBalanceManager` 함수를 추가했습니다.
-    -   DeepBook에서 거래하려면 모든 자산이 `BalanceManager`라는 객체에 예치되어야 합니다.
-    -   이 함수는 스크립트 첫 실행 시 `createAndShareBalanceManager` 트랜잭션을 통해 `BalanceManager`를 생성하고, 그 ID를 `balanceManager.json` 파일에 저장합니다.
-    -   이후 실행 시에는 파일에 저장된 ID를 읽어와 재사용하므로, 매번 새로 생성할 필요가 없습니다.
+- **샘플 코드:** `BALANCE_MANAGER_ID`를 하드코딩된 상수로 가정했습니다.
+- **수정된 코드:** `getOrCreateBalanceManager` 함수를 추가했습니다.
+  - DeepBook에서 거래하려면 모든 자산이 `BalanceManager`라는 객체에 예치되어야 합니다.
+  - 이 함수는 스크립트 첫 실행 시 `createAndShareBalanceManager` 트랜잭션을 통해 `BalanceManager`를 생성하고, 그 ID를 `balanceManager.json` 파일에 저장합니다.
+  - 이후 실행 시에는 파일에 저장된 ID를 읽어와 재사용하므로, 매번 새로 생성할 필요가 없습니다.
 
 ### 5.2. 동적 Pool ID 조회
 
--   **샘플 코드:** `POOL_ID`를 하드코딩했습니다.
--   **수정된 코드:** `dbClient.pool.getPoolIdByAssets(BASE_COIN_TYPE, QUOTE_COIN_TYPE)`를 사용합니다.
-    -   Base 코인(BTC)과 Quote 코인(USDC)의 전체 타입을 이용해 Pool의 ID를 동적으로 조회합니다.
-    -   이 방식은 Pool ID가 변경되거나 다른 페어를 거래하고 싶을 때 코드의 유연성을 높여줍니다.
+- **샘플 코드:** `POOL_ID`를 하드코딩했습니다.
+- **수정된 코드:** `dbClient.pool.getPoolIdByAssets(BASE_COIN_TYPE, QUOTE_COIN_TYPE)`를 사용합니다.
+  - Base 코인(BTC)과 Quote 코인(USDC)의 전체 타입을 이용해 Pool의 ID를 동적으로 조회합니다.
+  - 이 방식은 Pool ID가 변경되거나 다른 페어를 거래하고 싶을 때 코드의 유연성을 높여줍니다.
 
 ### 5.3. 정확한 스왑 함수 사용
 
--   **샘플 코드:** 존재하지 않는 `dbClient.pool.swapMarket` 함수를 사용했습니다.
--   **수정된 코드:** `dbClient.swap.swapExactQuoteForBase` 함수를 사용합니다.
-    -   이 함수는 "정확한 양의 Quote 코인(USDC)을 지불하고, 그 대가로 가능한 많은 Base 코인(BTC)을 받는다"는 시장가 매수 로직에 정확히 부합합니다.
-    -   `quoteAmount`에 지불할 USDC 금액을, `minBaseAmountOut`에는 0을 넣어 슬리피지(slippage)에 관계없이 시장가로 체결되도록 합니다.
+- **샘플 코드:** 존재하지 않는 `dbClient.pool.swapMarket` 함수를 사용했습니다.
+- **수정된 코드:** `dbClient.swap.swapExactQuoteForBase` 함수를 사용합니다.
+  - 이 함수는 "정확한 양의 Quote 코인(USDC)을 지불하고, 그 대가로 가능한 많은 Base 코인(BTC)을 받는다"는 시장가 매수 로직에 정확히 부합합니다.
+  - `quoteAmount`에 지불할 USDC 금액을, `minBaseAmountOut`에는 0을 넣어 슬리피지(slippage)에 관계없이 시장가로 체결되도록 합니다.
 
 ### 5.4. 자금 예치 과정 명확화
 
--   **샘플 코드:** `depositIntoManager` 함수를 사용했지만, 어떤 코인을 예치하는지 명확하지 않았습니다.
--   **수정된 코드:** `dbClient.balanceManager.depositIntoManager`를 호출하여 `FIXED_QUOTE_AMOUNT` 만큼의 `QUOTE_COIN_TYPE`(USDC)을 `BalanceManager`에 예치하는 과정을 명시적으로 보여줍니다. SDK는 이 과정에서 필요한 코인을 지갑에서 자동으로 찾아 트랜잭션에 포함시킵니다.
+- **샘플 코드:** `depositIntoManager` 함수를 사용했지만, 어떤 코인을 예치하는지 명확하지 않았습니다.
+- **수정된 코드:** `dbClient.balanceManager.depositIntoManager`를 호출하여 `FIXED_QUOTE_AMOUNT` 만큼의 `QUOTE_COIN_TYPE`(USDC)을 `BalanceManager`에 예치하는 과정을 명시적으로 보여줍니다. SDK는 이 과정에서 필요한 코인을 지갑에서 자동으로 찾아 트랜잭션에 포함시킵니다.
 
 ---
 
@@ -276,7 +279,7 @@ npx ts-node dca-bot.ts
 
 ### 향후 개선 사항
 
--   **스케줄링:** `node-cron`과 같은 라이브러리를 사용하거나, 시스템의 `cron` 작업을 등록하여 이 스크립트를 주기적으로 (예: 매일, 매주) 실행하도록 자동화할 수 있습니다.
--   **에러 핸들링 강화:** RPC 통신 오류, 지갑 잔액 부족 등 다양한 예외 상황에 대한 처리 로직을 추가하여 봇의 안정성을 높일 수 있습니다.
--   **자산 인출:** 현재 코드는 매수한 BTC를 `BalanceManager`에 그대로 둡니다. 필요하다면 `dbClient.balanceManager.withdrawFromManager` 함수를 사용하여 매수한 자산을 개인 지갑으로 인출하는 로직을 추가할 수 있습니다.
--   **로깅:** 실행 결과, 오류, 매수 내역 등을 파일이나 데이터베이스에 기록하여 관리할 수 있습니다.
+- **스케줄링:** `node-cron`과 같은 라이브러리를 사용하거나, 시스템의 `cron` 작업을 등록하여 이 스크립트를 주기적으로 (예: 매일, 매주) 실행하도록 자동화할 수 있습니다.
+- **에러 핸들링 강화:** RPC 통신 오류, 지갑 잔액 부족 등 다양한 예외 상황에 대한 처리 로직을 추가하여 봇의 안정성을 높일 수 있습니다.
+- **자산 인출:** 현재 코드는 매수한 BTC를 `BalanceManager`에 그대로 둡니다. 필요하다면 `dbClient.balanceManager.withdrawFromManager` 함수를 사용하여 매수한 자산을 개인 지갑으로 인출하는 로직을 추가할 수 있습니다.
+- **로깅:** 실행 결과, 오류, 매수 내역 등을 파일이나 데이터베이스에 기록하여 관리할 수 있습니다.
